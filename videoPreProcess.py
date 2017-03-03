@@ -4,13 +4,17 @@ from functools import reduce
 import tensorflow as tf
 import time
 
-def videoRead(fileName):
+def videoRead(fileName,grayMode=True):
     cap = cv2.VideoCapture(fileName)
     firstFrame = True
     ret,frame = cap.read()
     while(ret):
         if ret:
-            frame_4d = np.reshape(frame,((1,)+frame.shape))
+            if grayMode == True:
+                gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+                frame_4d = np.reshape(gray,((1,)+gray.shape+(1,)))
+            else:
+                frame_4d = np.reshape(frame,((1,)+frame.shape))
             if firstFrame:
                 video = frame_4d
                 firstFrame = False
@@ -23,6 +27,13 @@ def videoRead(fileName):
     else:
         frames = video[range(0,video.shape[0],2)]
         return frames 
+    
+def videoNorm(videoIn):
+    vmax = np.amax(videoIn)
+    vmin = np.amin(videoIn)
+    vo = (videoIn - vmin)/(vmax-vmin) * 255
+    vo = vo.astype(np.uint8)
+    return vo
 
 def videoPlay(video):
     cv2.namedWindow('Video Player',cv2.WINDOW_AUTOSIZE)
@@ -33,6 +44,12 @@ def videoPlay(video):
         if cv2.waitKey(200) == 27:
             break
     cv2.destroyAllWindows()
+    
+def videofliplr(videoIn):
+    v1 = np.reshape(videoIn,(videoIn.shape[0] * videoIn.shape[1], videoIn.shape[2], videoIn.shape[3]))
+    v2 = np.fliplr(v1)
+    videoOut = np.reshape(v2,videoIn.shape)
+    return videoOut
 
 def downSampling(video,n=64):
     frameN = video.shape[0]
@@ -97,7 +114,7 @@ def videoRezise(videoIn,frmSize):
 
 
 def videoProcess(fileName,frmSize):
-    v1 = videoRead(fileName)
+    v1 = videoRead(fileName,grayMode=False)
     if v1 is not None:
         v2 = videoRezise(v1,frmSize)
         v3 = videoSimplify(v2)
